@@ -11,11 +11,11 @@ def writer(file, data):
     with open(file, 'w') as f:
         f.write(str(data))
 
-class MemDir:
+class MemDir(dict):
     def __init__(self, name):
+        super().__init__()
         self.parent = None
         self.name = name
-        self.dirs = {}
         self.files = []
 
     def get_path(self):
@@ -30,7 +30,7 @@ class MemDir:
         if type(name) == str:
             newdir = MemDir(name)
             newdir.parent = self
-        self.dirs[newdir.name] = newdir
+        self[newdir.name] = newdir
 
     def add_obj(self, obj):
         self.files.append(obj)
@@ -40,7 +40,7 @@ class MemDir:
 
     def traverse(self):
         yield self
-        for dir in self.dirs.values():
+        for dir in self.values():
             yield from dir.traverse()
 
     @staticmethod
@@ -58,13 +58,13 @@ class MemDir:
         elif type(item) == str:
             first, rest = self.__split_first_rest__(item)
             if rest is None:
-                return self.dirs[item]
+                return super().__getitem__(item)
             else:
-                return self.dirs[first][rest]
+                return super().__getitem__(first)[rest]
 
     def make_dir_tree(self, path):
         first, rest = self.__split_first_rest__(path)
-        if first not in self.dirs:
+        if first not in self:
             self.add_dir(first)
         child = self[first]
         if rest is not None:
@@ -74,7 +74,7 @@ class MemDir:
         return len(self.files)
 
     def numdirs(self):
-        return len(self.dirs)
+        return len(self)
 
     def __repr__(self):
         return f"MemDir({self.get_path()}, D={self.numdirs()}, F={self.numfiles()})"
@@ -87,7 +87,10 @@ def load_path(path):
         for file in files:
             data = loader(os.path.join(root, file))
             tree[root].add_obj([file, data])
-    return tree[path]
+    root = tree[path]
+    root.parent = None
+    del tree
+    return root
 
 if __name__ == '__main__':
     memdir = load_path('test1')
@@ -97,7 +100,7 @@ if __name__ == '__main1__':
     memdir = MemDir('root')
     memdir.add_dir('child1')
     memdir.add_dir('child2')
-    memdir.dirs['child1'].add_obj([1,2,3,4])
+    memdir['child1'].add_obj([1,2,3,4])
     memdir['child1'].add_dir('child11')
     memdir['child1']['child11'].add_obj('a string')
     child = memdir['child1/child11']
