@@ -26,7 +26,7 @@ class MemDir(dict):
             parent = parent.parent
         return path
 
-    def add_dir(self, newdir):
+    def create_child(self, newdir):
         if type(newdir) == str:
             newdir = MemDir(name=newdir)
             newdir.parent = self
@@ -62,13 +62,22 @@ class MemDir(dict):
             else:
                 return super().__getitem__(first)[rest]
 
-    def make_dir_tree(self, path):
+    def make_subdirs(self, path):
         first, rest = self.__split_first_rest__(path)
         if first not in self:
-            self.add_dir(first)
+            self.create_child(first)
         child = self[first]
         if rest is not None:
-            child.make_dir_tree(rest)
+            child.make_subdirs(rest)
+
+    def rename(self, newname):
+        if self.parent is None:
+            self.name = newname
+        else:
+            parent = self.parent
+            pop = parent.pop(self.name)
+            pop.name = newname
+            parent.create_child(pop)
 
     def numfiles(self):
         return len(self.files)
@@ -83,7 +92,7 @@ def load_path(path):
     tree = MemDir('.')
     for root, dirs, files in os.walk(path):
         root = root.replace('\\', '/')
-        tree.make_dir_tree(root)
+        tree.make_subdirs(root)
         for file in files:
             data = loader(os.path.join(root, file))
             tree[root].add_obj([file, data])
@@ -102,21 +111,21 @@ def dump_tree(root, memdir):
             writer(os.path.join(dirpath, file[0]), file[1])
     memdir.name = oldname
 
-if __name__ == '__main__':
-    memdir = load_path('test1')
+if __name__ == '__main1__':
+    memdir = load_path('D:/MusicLab/memdir/test1 - Copy')
     dump_tree(os.path.join('D:/dumptree1/copy'), memdir)
 
-if __name__ == '__main1__':
+if __name__ == '__main__':
     memdir = MemDir('.')
-    memdir.add_dir('child1')
-    memdir.add_dir('child2')
+    memdir.make_subdirs('child1')
+    memdir.make_subdirs('child2')
     memdir['child1'].add_obj([1,2,3,4])
-    memdir['child1'].add_dir('child11')
-    memdir['child1']['child11'].add_obj('a string')
+    memdir.make_subdirs('child1/child11')
+    memdir.make_subdirs('child2/child22/deep/deeper')
+    memdir.make_subdirs('child2/child22/deep1/deeper')
+    memdir.make_subdirs('child2/child22/deep2')
+    memdir['child2/child22'].rename('CHILD22')
+    memdir['child1/child11'].add_obj('a string')
     child = memdir['child1/child11']
-    # print(child[0])
-    # print(child.get_path())
-    # print(child)
-    for dir in memdir['child1'].traverse():
+    for dir in memdir.traverse():
         print(dir)
-
