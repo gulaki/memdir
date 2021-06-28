@@ -104,7 +104,7 @@ def dump_tree(root, memdir):
 
 if __name__ == '__main__':
     memdir = load_path('test1')
-    dump_tree('dumptree', memdir)
+    dump_tree(os.path.join('D:/dumptree1/copy'), memdir)
 
 if __name__ == '__main1__':
     memdir = MemDir('.')
