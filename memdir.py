@@ -26,9 +26,9 @@ class MemDir(dict):
             parent = parent.parent
         return path
 
-    def add_dir(self, name):
-        if type(name) == str:
-            newdir = MemDir(name)
+    def add_dir(self, newdir):
+        if type(newdir) == str:
+            newdir = MemDir(name=newdir)
             newdir.parent = self
         self[newdir.name] = newdir
 
@@ -77,7 +77,7 @@ class MemDir(dict):
         return len(self)
 
     def __repr__(self):
-        return f"MemDir({self.get_path()}, D={self.numdirs()}, F={self.numfiles()})"
+        return f"MemDir('{self.get_path()}', D={self.numdirs()}, F={self.numfiles()})"
 
 def load_path(path):
     tree = MemDir('.')
@@ -92,12 +92,22 @@ def load_path(path):
     del tree
     return root
 
+def dump_tree(root, memdir):
+    oldname = memdir.name
+    memdir.name = root
+    for dir in memdir.traverse():
+        dirpath = dir.get_path()
+        os.makedirs(dirpath)
+        for file in dir.files:
+            writer(os.path.join(dirpath, file[0]), file[1])
+    memdir.name = oldname
+
 if __name__ == '__main__':
     memdir = load_path('test1')
-    print(memdir)
+    dump_tree('dumptree', memdir)
 
 if __name__ == '__main1__':
-    memdir = MemDir('root')
+    memdir = MemDir('.')
     memdir.add_dir('child1')
     memdir.add_dir('child2')
     memdir['child1'].add_obj([1,2,3,4])
