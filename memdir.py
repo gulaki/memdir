@@ -1,6 +1,7 @@
 import os
 
 path = os.path.dirname(__file__)
+EXTN = '.dat'
 
 def loader(file):
     with open(file, 'r') as f:
@@ -30,7 +31,7 @@ class MemDir(dict):
         if type(newdir) == str:
             newdir = MemDir(name=newdir)
             newdir.parent = self
-        self[newdir.name] = newdir
+        super().__setitem__(newdir.name, newdir)
 
     def add_obj(self, obj):
         self.files.append(obj)
@@ -70,6 +71,11 @@ class MemDir(dict):
         if rest is not None:
             child.make_subdirs(rest)
 
+    def __setitem__(self, key, value):
+        raise TypeError('Cannot set values in a MemDir.')
+        # self.make_subdirs(key)
+        # self[key].add_obj(value)
+
     def rename(self, newname):
         if self.parent is None:
             self.name = newname
@@ -78,6 +84,19 @@ class MemDir(dict):
             pop = parent.pop(self.name)
             pop.name = newname
             parent.create_child(pop)
+
+    def copy(self, newname=None):
+        files = []
+        for file in self.files:
+            try:
+                files.append(file.copy())
+            except AttributeError:
+                files.append(file)
+        newdir = MemDir(newname if newname else self.name)
+        newdir.files = files
+        for dir in self.values():
+            newdir.create_child(dir.copy())
+        return newdir
 
     def numfiles(self):
         return len(self.files)
@@ -111,21 +130,39 @@ def dump_tree(root, memdir):
             writer(os.path.join(dirpath, file[0]), file[1])
     memdir.name = oldname
 
+def dump_data(root, memdir):
+    oldname = memdir.name
+    memdir.name = root
+    for dir in memdir.traverse():
+        dirpath = dir.get_path()
+        os.makedirs(dirpath, exist_ok=True)
+        for idx, file in enumerate(dir.files):
+            writer(os.path.join(dirpath, str(idx)+EXTN), file)
+    memdir.name = oldname
+
 if __name__ == '__main1__':
     memdir = load_path('D:/MusicLab/memdir/test1 - Copy')
     dump_tree(os.path.join('D:/dumptree1/copy'), memdir)
 
 if __name__ == '__main__':
     memdir = MemDir('.')
-    memdir.make_subdirs('child1')
-    memdir.make_subdirs('child2')
-    memdir['child1'].add_obj([1,2,3,4])
+    # memdir.make_subdirs('child1')
+    # memdir.make_subdirs('child2')
     memdir.make_subdirs('child1/child11')
     memdir.make_subdirs('child2/child22/deep/deeper')
     memdir.make_subdirs('child2/child22/deep1/deeper')
     memdir.make_subdirs('child2/child22/deep2')
+    memdir['child1'].add_obj([1,2,3,4])
+    # memdir['child1'] = 3
     memdir['child2/child22'].rename('CHILD22')
     memdir['child1/child11'].add_obj('a string')
+    memdir['child1/child11'].add_obj(['a', 'list', 'of', (1, 2, 3)])
     child = memdir['child1/child11']
+    memdir['child1'].add_objs([1, 2, 3, 4])
+    memdir.rename('root')
     for dir in memdir.traverse():
-        print(dir)
+        if dir.files:
+            print(dir, dir.files)
+        else:
+            print(dir)
+    dump_data('cliplib', memdir)
