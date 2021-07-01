@@ -30,14 +30,17 @@ class MemDir(dict):
     def create_child(self, newdir):
         if type(newdir) == str:
             newdir = MemDir(name=newdir)
-            newdir.parent = self
+        newdir.parent = self
         super().__setitem__(newdir.name, newdir)
+        return newdir
 
     def add_obj(self, obj):
         self.files.append(obj)
+        return self
 
     def add_objs(self, objs):
         self.files.extend(objs)
+        return self
 
     def traverse(self):
         yield self
@@ -68,8 +71,10 @@ class MemDir(dict):
         if first not in self:
             self.create_child(first)
         child = self[first]
-        if rest is not None:
-            child.make_subdirs(rest)
+        if rest is None:
+            return child
+        else:
+            return child.make_subdirs(rest)
 
     def __setitem__(self, key, value):
         raise TypeError('Cannot set values in a MemDir.')

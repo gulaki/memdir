@@ -15,11 +15,14 @@ class TestCreation(unittest.TestCase):
         self.dir.create_child('child')
         self.assertEqual(list(self.dir.keys()), ['child'])
         self.assertIsInstance(self.dir['child'], MemDir)
+        self.assertIs(self.dir['child'].parent, self.dir)
 
     def test_create_child_memdir(self):
         child = MemDir('child1')
-        self.dir.create_child(child)
+        self.dir.create_child(child).add_obj('add file with create dir')
         self.assertEqual(list(self.dir.keys()), ['child1'])
+        self.assertIs(self.dir['child1'].parent, self.dir)
+        self.assertEqual(self.dir['child1'][0], 'add file with create dir')
 
     def test_add_obj(self):
         self.dir.add_obj([1,2,3,4])
@@ -47,14 +50,19 @@ class TestUseCase(unittest.TestCase):
         )
 
     def test_getitem_filenum(self):
-        pass
+        self.assertIs(
+            self.memdir['child1/child11'][0],
+            self.memdir['child1']['child11'].files[0]
+        )
 
     def test_get_path(self):
         child = self.memdir['child2/child22/deep']
+
         self.assertEqual(child.get_path(), './child2/child22/deep')
 
     def test_rename_child(self):
         self.memdir['child2/child22'].rename('CHILD22')
+
         self.assertIn('CHILD22', self.memdir['child2'])
         self.assertNotIn('child22', self.memdir['child2'])
         self.assertIs(self.memdir['child2/CHILD22'].parent, self.memdir['child2'])
@@ -62,10 +70,14 @@ class TestUseCase(unittest.TestCase):
     def test_copy_of_node_paste_as_different_subdir(self):
         nodecopy = self.memdir['child1/child11'].copy(newname='child11copy')
         nodecopy[1][1] = 'tuple'
-        # nodecopy.rename('child11copy')
         self.memdir['child2/child22/deep'].create_child(nodecopy)
+
         self.assertEqual(self.memdir['child2/child22/deep/child11copy'], nodecopy)
         self.assertEqual(self.memdir['child1/child11'][1], ['a', 'list', 'of', (1, 2, 3)])
+
+    def test_make_subdirs_and_add_obj(self):
+        self.memdir.make_subdirs('child3/child33').add_objs([1,2,3,'4'])
+        self.assertEqual(self.memdir['child3/child33'].files, [1,2,3,'4'])
 
 if __name__ == '__main__':
     unittest.main()
